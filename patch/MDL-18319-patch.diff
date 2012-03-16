@@ -1,0 +1,251 @@
+diff --git a/admin/settings/courses.php b/admin/settings/courses.php
+index 88fbdef..7f42532 100644
+--- a/admin/settings/courses.php
++++ b/admin/settings/courses.php
+@@ -88,6 +88,13 @@ if ($hassiteconfig
+         $ADMIN->add('courses', new admin_externalpage('coursespending', new lang_string('pendingrequests'),
+                 $CFG->wwwroot . '/course/pending.php', array('moodle/site:approvecourse')));
+     }
++/// Custom Metadata fields
++/// 
++
++    $ADMIN->add('courses', new admin_externalpage('coursemetadata', 'Custom metadata', $CFG->wwwroot . '/course/coursemetadata/index.php?categoryedit=on','moodle/site:config'));
++
++//Custom Metadata entry ends here
++
+ 
+     // Add a category for backups
+     $ADMIN->add('courses', new admin_category('backups', new lang_string('backups','admin')));
+diff --git a/course/edit.php b/course/edit.php
+index 053d8bb..f11deb2 100644
+--- a/course/edit.php
++++ b/course/edit.php
+@@ -47,6 +47,10 @@ if ($id) { // editing course
+     $coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);
+     require_capability('moodle/course:update', $coursecontext);
+     $PAGE->url->param('id',$id);
++    //Save course metadata fields - MDL-18319
++    coursemetadata_load_data($course);
++    //Save course metadata fields - MDL-18319 - Ends here
++
+ 
+ } else if ($categoryid) { // creating new course in this category
+     $course = null;
+@@ -137,6 +141,10 @@ if ($editform->is_cancelled()) {
+     } else {
+         // Save any changes to the files used in the editor
+         update_course($data, $editoroptions);
++        
++        //Save course metadata fields - MDL-18319
++        coursemetadata_save_data($data);
++        //Save course metadata fields - MDL-18319 - Ends here
+     }
+ 
+     switch ($returnto) {
+diff --git a/course/edit_form.php b/course/edit_form.php
+index d87c9d1..e1059b2 100644
+--- a/course/edit_form.php
++++ b/course/edit_form.php
+@@ -4,6 +4,10 @@ defined('MOODLE_INTERNAL') || die;
+ 
+ require_once($CFG->libdir.'/formslib.php');
+ require_once($CFG->libdir.'/completionlib.php');
++//Save course metadata fields - MDL-18319
++require_once($CFG->dirroot.'/course/coursemetadata/lib.php');
++//Save course metadata fields - MDL-18319 - Ends here
++
+ 
+ class course_edit_form extends moodleform {
+     protected $course;
+@@ -182,6 +186,13 @@ class course_edit_form extends moodleform {
+             }
+             $mform->addElement('select', 'theme', get_string('forcetheme'), $themes);
+         }
++        
++		//Save course metadata fields - MDL-18319
++
++		coursemetadata_definition($mform);
++	   //Save course metadata fields - MDL-18319 - Ends here
++
++
+ 
+ //--------------------------------------------------------------------------------
+         enrol_course_edit_form($mform, $course, $context);
+diff --git a/lang/en/admin.php b/lang/en/admin.php
+index dbf6a26..56a9d27 100644
+--- a/lang/en/admin.php
++++ b/lang/en/admin.php
+@@ -1012,3 +1012,62 @@ $string['xmlrpcrecommended'] = 'The xmlrpc extension is needed for hub communica
+ $string['xmlstrictheaders'] = 'XML strict headers';
+ $string['yuicomboloading'] = 'YUI combo loading';
+ $string['ziprequired'] = 'The Zip PHP extension is now required by Moodle, info-ZIP binaries or PclZip library are not used anymore.';
++
++
++//Save course metadata fields - MDL-18319 
++$string['coursemetadatacategory'] = 'Category';
++$string['coursemetadatacategoryname'] = 'Category name (must be unique)';
++$string['coursemetadatacategorynamenotunique'] = 'This category name is already in use';
++$string['coursemetadatacommonsettings'] = 'Common settings';
++$string['coursemetadataconfirmcategorydeletion'] = 'There is/are {$a} field/s in this category which will be moved into the category above (or below if in the top category).<br />Do you still wish to delete this category?';
++$string['coursemetadataconfirmfielddeletion'] = 'There is/are {$a} user record/s for this field which will be deleted.<br />Do you still wish to delete this field?';
++$string['coursemetadatacreatecategory'] = 'Create a new metadata category';
++$string['coursemetadatacreatefield'] = 'Create a new metadata field:';
++$string['coursemetadatacreatenewcategory'] = 'Creating a new category';
++$string['coursemetadatacreatenewfield'] = 'Creating a new \'{$a}\' metadata field';
++$string['coursemetadatadefaultcategory'] = 'Other fields';
++$string['coursemetadatadefaultdata'] = 'Default value';
++$string['coursemetadatadefaultchecked'] = 'Checked by default';
++$string['coursemetadatadeletecategory'] = 'Deleting a category';
++$string['coursemetadatadeletefield'] = 'Deleting field \'{$a}\'';
++$string['coursemetadatadescription'] = 'Description of the field';
++$string['coursemetadatadscript'] = 'This script has been profiled';
++$string['coursemetadatadscriptview'] = 'View profiling information for this script';
++$string['coursemetadataeditcategory'] = 'Editing category: {$a}';
++$string['coursemetadataeditfield'] = 'Editing metadata field: {$a}';
++$string['coursemetadatafield'] = 'Course metadata field';
++$string['coursemetadatafieldcolumns'] = 'Columns';
++$string['coursemetadatafieldispassword'] = 'Is this a password field?';
++$string['coursemetadatafieldlink'] = 'Link';
++$string['coursemetadatafieldlink_help'] = 'To transform the text into a link, enter a URL containing $$, where $$ will be replaced with the text. For example, to transform a Twitter ID to a link, enter http://twitter.com/$$.';
++$string['coursemetadatafieldlinktarget'] = 'Link target';
++$string['coursemetadatafieldmaxlength'] = 'Maximum length';
++$string['coursemetadatafieldrows'] = 'Rows';
++$string['coursemetadatafields'] = 'User profile fields';
++$string['coursemetadatafieldsize'] = 'Display size';
++$string['coursemetadataforceunique'] = 'Should the data be unique?';
++$string['coursemetadatainvaliddata'] = 'Invalid value';
++$string['coursemetadatalocked'] = 'Is this field locked?';
++$string['coursemetadatamenudefaultnotinoptions'] = 'The default value is not one of the options';
++$string['coursemetadatamenunooptions'] = 'No menu options supplied';
++$string['coursemetadatamenuoptions'] = 'Menu options (one per line)';
++$string['coursemetadatamenutoofewoptions'] = 'You must provide at least 2 options';
++$string['coursemetadataname'] = 'Name';
++$string['coursemetadatanofieldsdefined'] = 'No fields have been defined';
++$string['coursemetadatarequired'] = 'Is this field required?';
++$string['coursemetadataroles'] = 'coursemetadata visible roles';
++$string['coursemetadatasforenrolledusersonly'] = 'Course metadata for enrolled users only';
++$string['coursemetadatashortname'] = 'Short name (must be unique)';
++$string['coursemetadatashortnamenotunique'] = 'This short name is already in use';
++$string['coursemetadatasignup'] = 'Display on signup page?';
++$string['coursemetadataspecificsettings'] = 'Specific settings';
++$string['coursemetadatavisible'] = 'Who is this field visible to?';
++$string['coursemetadatavisible_help'] = '* Not visible - For private data only viewable by administrators
++* Visible to user - For private data only viewable by the user and by administrators
++* Visible to everyone';
++$string['coursemetadatavisibleall'] = 'Visible to everyone';
++$string['coursemetadatavisiblenone'] = 'Not visible';
++$string['coursemetadatavisibleprivate'] = 'Visible to user';
++$string['coursemetadatashowoncreate'] = 'Show on create';
++$string['coursemetadata'] = 'Custom course metadata fields';
++//Save course metadata fields - MDL-18319 - Ends here
+\ No newline at end of file
+diff --git a/lang/en/plugin.php b/lang/en/plugin.php
+index 6b06211..314974b 100644
+--- a/lang/en/plugin.php
++++ b/lang/en/plugin.php
+@@ -114,3 +114,7 @@ $string['uninstall'] = 'Uninstall';
+ $string['version'] = 'Version';
+ $string['versiondb'] = 'Current version';
+ $string['versiondisk'] = 'New version';
++//Save course metadata fields - MDL-18319
++$string['type_coursemetadatafield'] = 'Course metadata type';
++$string['type_coursemetadatafield_plural'] = 'Course metadata types';
++//Save course metadata fields - MDL-18319 - Ends here
+\ No newline at end of file
+diff --git a/lib/db/install.xml b/lib/db/install.xml
+index 81c5a91..5cdf4b0 100644
+--- a/lib/db/install.xml
++++ b/lib/db/install.xml
+@@ -2828,7 +2828,7 @@
+         <KEY NAME="fk_usercreated" TYPE="foreign" FIELDS="usercreated" REFTABLE="user" REFFIELDS="id" PREVIOUS="uq_area_method"/>
+       </KEYS>
+     </TABLE>
+-    <TABLE NAME="grading_instances" COMMENT="Grading form instance is an assessment record for one gradable item assessed by one rater" PREVIOUS="grading_definitions">
++    <TABLE NAME="grading_instances" COMMENT="Grading form instance is an assessment record for one gradable item assessed by one rater" PREVIOUS="grading_definitions" NEXT="coursemetadata_info_field">
+       <FIELDS>
+         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="definitionid"/>
+         <FIELD NAME="definitionid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" COMMENT="The ID of the form definition this is instance of" PREVIOUS="id" NEXT="raterid"/>
+@@ -2846,5 +2846,69 @@
+         <KEY NAME="fk_raterid" TYPE="foreign" FIELDS="raterid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_definitionid"/>
+       </KEYS>
+     </TABLE>
++    
++    
++    
++    
++    
++     <TABLE NAME="coursemetadata_info_field" COMMENT="Customisable course metadata fields" PREVIOUS="grading_instances" NEXT="coursemetadata_info_category">
++      <FIELDS>
++        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="shortname"/>
++        <FIELD NAME="shortname" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="shortname" SEQUENCE="false" COMMENT="short name for each field" PREVIOUS="id" NEXT="name"/>
++        <FIELD NAME="name" TYPE="text" LENGTH="big" NOTNULL="true" SEQUENCE="false" COMMENT="field name" PREVIOUS="shortname" NEXT="datatype"/>
++        <FIELD NAME="datatype" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Type of data held in this field" PREVIOUS="name" NEXT="description"/>
++        <FIELD NAME="description" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="Description of field" PREVIOUS="datatype" NEXT="descriptionformat"/>
++        <FIELD NAME="descriptionformat" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="description" NEXT="categoryid"/>
++        <FIELD NAME="categoryid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="id from category table" PREVIOUS="descriptionformat" NEXT="sortorder"/>
++        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="order within the category" PREVIOUS="categoryid" NEXT="required"/>
++        <FIELD NAME="required" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Field required" PREVIOUS="sortorder" NEXT="locked"/>
++        <FIELD NAME="locked" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Field locked" PREVIOUS="required" NEXT="visible"/>
++        <FIELD NAME="visible" TYPE="int" LENGTH="4" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Visibility: private, public, hidden" PREVIOUS="locked" NEXT="forceunique"/>
++        <FIELD NAME="forceunique" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="should the field contain unique data" PREVIOUS="visible" NEXT="defaultdata"/>
++        
++        <FIELD NAME="defaultdata" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="Default value for this field" PREVIOUS="forceunique" NEXT="defaultdataformat"/>
++        <FIELD NAME="defaultdataformat" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="defaultdata" NEXT="param1"/>
++        <FIELD NAME="param1" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="General parameter field" PREVIOUS="defaultdataformat" NEXT="param2"/>
++        <FIELD NAME="param2" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="General parameter field" PREVIOUS="param1" NEXT="param3"/>
++        <FIELD NAME="param3" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="General parameter field" PREVIOUS="param2" NEXT="param4"/>
++        <FIELD NAME="param4" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="General parameter field" PREVIOUS="param3" NEXT="param5"/>
++        <FIELD NAME="param5" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="General parameter field" PREVIOUS="param4"/>
++      </FIELDS>
++      <KEYS>
++        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
++      </KEYS>
++    </TABLE>
++    <TABLE NAME="coursemetadata_info_category" COMMENT="Customisable course metadata fields categories" PREVIOUS="coursemetadata_info_field" NEXT="coursemetadata_info_data">
++      <FIELDS>
++        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="name"/>
++        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Category name" PREVIOUS="id" NEXT="sortorder"/>
++        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Display order" PREVIOUS="name"/>
++      </FIELDS>
++      <KEYS>
++        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
++      </KEYS>
++    </TABLE>
++    <TABLE NAME="coursemetadata_info_data" COMMENT="Data for the customisable course metadata fields" PREVIOUS="coursemetadata_info_category">
++      <FIELDS>
++        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="course"/>
++        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="id from the course table" PREVIOUS="id" NEXT="fieldid"/>
++        <FIELD NAME="fieldid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="id from the coursemetadata field table" PREVIOUS="course" NEXT="data"/>
++        <FIELD NAME="data" TYPE="text" LENGTH="big" NOTNULL="true" SEQUENCE="false" COMMENT="Field data" PREVIOUS="fieldid" NEXT="dataformat"/>
++        <FIELD NAME="dataformat" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="data"/>
++      </FIELDS>
++      <KEYS>
++        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
++      </KEYS>
++      <INDEXES>
++        <INDEX NAME="coursemetadatafieldidx" UNIQUE="false" FIELDS="course, fieldid"/>
++      </INDEXES>
++    </TABLE>
++    
++        
++    
++    
++    
++    
++    
+   </TABLES>
+ </XMLDB>
+\ No newline at end of file
+diff --git a/lib/moodlelib.php b/lib/moodlelib.php
+index 71d9868..0792d5a 100644
+--- a/lib/moodlelib.php
++++ b/lib/moodlelib.php
+@@ -7687,6 +7687,8 @@ function get_plugin_types($fullpaths=true) {
+                       'filter'        => 'filter',
+                       'editor'        => 'lib/editor',
+                       'format'        => 'course/format',
++                      'coursemetadatafield'=> 'course/coursemetadata/field',  //Course metadata fields - MDL-18319
++
+                       'profilefield'  => 'user/profile/field',
+                       'report'        => 'report',
+                       'coursereport'  => 'course/report', // must be after system reports
